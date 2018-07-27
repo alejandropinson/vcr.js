@@ -3,4 +3,3 @@ node_modules
 yarn*.log
 .DS_Store
 dist
-lib
