@@ -4,12 +4,18 @@ import createProxyRequestOptions from './createProxyRequestOptions';
 import getFixturePath from './getFixturePath';
 import getProxyResponseHeaders from './getProxyResponseHeaders';
 import writeFixture from './writeFixture';
-import {IncomingMessage} from 'http';
-import {Request, Response, NextFunction, RequestHandler} from 'express';
+import { IncomingMessage } from 'http';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 
 export default (realApiBaseUrl: string, outputDir?: string): RequestHandler =>
   (req: Request, res: Response, next: NextFunction): void => {
     if (req.path === '/') return next();
+
+    if (req.originalUrl.indexOf('@') !== -1) {
+      let urlParts = req.originalUrl.split('/').splice(2);
+      console.log(urlParts);
+      req.originalUrl = '/' + urlParts.join('/');
+    }
 
     const apiReqURL = `${realApiBaseUrl}${req.originalUrl}`;
 
@@ -26,12 +32,12 @@ export default (realApiBaseUrl: string, outputDir?: string): RequestHandler =>
 
         // response from API is OK
         console.log(`${chalk.magenta('[Stub server]')} proxy request to ${chalk.yellow(realApiBaseUrl + req.originalUrl)} ended up with ${chalk.green(`${proxyRes.statusCode}`)} returning its response`);
-        const headers = {...proxyRes.headers, ...getProxyResponseHeaders(req, apiReqURL, outputDir)};
+        const headers = { ...proxyRes.headers, ...getProxyResponseHeaders(req, apiReqURL, outputDir) };
         res.writeHead(proxyRes.statusCode || 500, headers);
 
         // pipe API response to client till the 'end'
         proxyRes.pipe(res);
-        proxyRes.on('error', (e: Error) => {console.log('proxyRes.on error', e); next(e); });
+        proxyRes.on('error', (e: Error) => { console.log('proxyRes.on error', e); next(e); });
         proxyRes.on('end', () => { res.end(); });
 
         // write response as fixture on the disc
